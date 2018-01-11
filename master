@@ -1,1 +1,99 @@
+import pygame,random,math
+pygame.init()
+w,h=800,800
+gamedisplay=pygame.display.set_mode((w,h))
+img = pygame.image.load('racecar.png')
+img = pygame.transform.rotate(img , -90)
+clock = pygame.time.Clock()
+img_w,img_h=73,82
+gamedisplay.fill((255,255,100))
+
+def key_check(move,angle):
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            quit_game()
+        if pygame.mouse.get_pressed()[0]:
+            game_loop()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RIGHT:
+
+                angle-=10
+            if event.key == pygame.K_LEFT:
+                angle+=10
+            if event.key == pygame.K_UP:
+                move += 5
+            if event.key == pygame.K_DOWN:
+                move -= 5
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_RIGHT:
+                pass
+            if event.key == pygame.K_LEFT:
+                pass
+            if event.key == pygame.K_UP or event.key == pygame.K_DOWN :
+                move = 0
+
+    return move,angle
+
+
+def move_thing(x,y,angle,move):
+    if 0<x and x+img_w<w :
+        x+=math.cos(math.radians(angle)) * move
+    else:
+        if x<6:
+            x = 5
+        else:
+            x = w - 5 - img_w
+
+
+    if 0<y and y+img_h<h:
+        y-=math.sin(math.radians(angle)) * move
+    else:
+        if y<6:
+            y = 5
+        else:
+            y = h - 5 - img_h
+
+    return x,y
+def draw_thing(thing,x,y):
+    gamedisplay.blit(thing , (x,y))
+    pygame.display.update()
+
+def rotate_thing(x,y,angle):
+    thing = pygame.transform.rotate(img , angle)
+
+    return thing
+
+
+def text_objects(text,font):
+    textsurface=font.render(text,True,(0,0,0))
+    return textsurface,textsurface.get_rect()
+def show_msg(text,i=w/2,j=h/2):
+    font1=pygame.font.Font('freesansbold.ttf',10)
+    text_surface,text_rect=text_objects(text,font1)
+    text_rect.center=((i,j))
+    gamedisplay.blit(text_surface,text_rect)
+
+def crash(angle):
+    show_msg(angle)
+
+def quit_game():
+    pygame.quit()
+    quit()
+def game_loop():
+    car1 = img.copy()
+    move = 0
+    angle = 0
+    x,y= 100,100
+    while True:
+        move,angle=key_check(move,angle)
+        gamedisplay.fill((255,255,255))
+        crash('x:'+str(x)+'    y:'+str(y)+"angle:" + str(angle) + "  move:" + str(move) + '       sin(angle):' + str(math.cos(math.radians(angle)))+'     cos(angle):' + str(math.sin(math.radians(angle))))
+        show_msg('use mouse click to restart the game',200,200)
+        car1=rotate_thing(x,y,angle)
+        x,y=move_thing(x,y,angle,move)
+        draw_thing(car1,x,y)
+        clock.tick(60)
+        pygame.display.update()
+
+game_loop()
 
