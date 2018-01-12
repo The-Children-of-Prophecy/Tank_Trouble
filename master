@@ -1,3 +1,4 @@
+#sepehr razmyar
 import pygame,random,math
 pygame.init()
 w,h=800,800
@@ -8,7 +9,7 @@ clock = pygame.time.Clock()
 img_w,img_h=73,82
 gamedisplay.fill((255,255,100))
 
-def key_check(move,angle):
+def key_check(move,angle,rotate_right,rotate_left):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             quit_game()
@@ -16,42 +17,39 @@ def key_check(move,angle):
             game_loop()
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RIGHT:
-
-                angle-=10
+                rotate_right=True
             if event.key == pygame.K_LEFT:
-                angle+=10
+                rotate_left = True
             if event.key == pygame.K_UP:
                 move += 5
             if event.key == pygame.K_DOWN:
                 move -= 5
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_RIGHT:
-                pass
+                rotate_right=False
             if event.key == pygame.K_LEFT:
-                pass
+                rotate_left=False
             if event.key == pygame.K_UP or event.key == pygame.K_DOWN :
                 move = 0
 
-    return move,angle
+    return move,angle,rotate_right,rotate_left
 
 
 def move_thing(x,y,angle,move):
-    if 0<x and x+img_w<w :
+    if 0<x-img_w/2 and x+img_w/2<w :
         x+=math.cos(math.radians(angle)) * move
     else:
-        if x<6:
-            x = 5
+        if x-img_w/2<5:
+            x = img_w/2+5
         else:
-            x = w - 5 - img_w
-
-
-    if 0<y and y+img_h<h:
+            x = w - 5 -img_w/2
+    if 0<y-img_h/2 and y+img_h/2<h:
         y-=math.sin(math.radians(angle)) * move
     else:
-        if y<6:
-            y = 5
+        if y-img_h/2<6:
+            y = 5 + img_h/2
         else:
-            y = h - 5 - img_h
+            y = h - 5 - img_h/2
 
     return x,y
 def draw_thing(thing,x,y):
@@ -59,9 +57,10 @@ def draw_thing(thing,x,y):
     pygame.display.update()
 
 def rotate_thing(x,y,angle):
-    thing = pygame.transform.rotate(img , angle)
 
-    return thing
+    rot_image = pygame.transform.rotozoom(img, angle , 1)
+    rot_rect = rot_image.get_rect(center=(x,y))
+    return rot_image,rot_rect
 
 
 def text_objects(text,font):
@@ -84,16 +83,21 @@ def game_loop():
     move = 0
     angle = 0
     x,y= 100,100
+    rotate_right,rotate_left=False,False
     while True:
-        move,angle=key_check(move,angle)
+        move,angle,rotate_right,rotate_left=key_check(move,angle,rotate_right,rotate_left)
+        if rotate_right == True:
+            angle-=4
+        if rotate_left == True:
+            angle+=4
         gamedisplay.fill((255,255,255))
-        crash('x:'+str(x)+'    y:'+str(y)+"angle:" + str(angle) + "  move:" + str(move) + '       sin(angle):' + str(math.cos(math.radians(angle)))+'     cos(angle):' + str(math.sin(math.radians(angle))))
+        crash('x:'+str(x)+'    y:'+str(y)+"angle:" + str(angle%360) + "  move:" + str(move) + '       sin(angle):' + str(math.cos(math.radians(angle)))+'     cos(angle):' + str(math.sin(math.radians(angle))))
         show_msg('use mouse click to restart the game',200,200)
-        car1=rotate_thing(x,y,angle)
+        car1,car_center=rotate_thing(x,y,angle)
         x,y=move_thing(x,y,angle,move)
-        draw_thing(car1,x,y)
-        clock.tick(60)
+        draw_thing(car1,car_center[0],car_center[1])
+        pygame.draw.circle(gamedisplay,(200,0,0),(int(x),int(y)),3)
+        clock.tick(30)
         pygame.display.update()
 
 game_loop()
-
