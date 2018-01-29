@@ -1,1 +1,834 @@
 
+
+
+
+
+
+tilesize = 9
+from collections import defaultdict
+import pygame as py # be ja pygame benvisim py
+import math
+import random
+import pytmx
+import pytweening
+vec = py.math.Vector2
+hit_rect = py.Rect(0,0,40,40)
+def hit_rect_collide(a,b):
+    return a.hit_rect.colliderect(b.rect)
+class Game:
+    def __init__(self):
+        py.init()
+        self.width,self.height = 1024,768
+        self.game_display = py.display.set_mode((self.width,self.height))
+        py.display.set_caption('this is the last time')
+        self.clock = py.time.Clock()
+        py.key.set_repeat(500,100) #vagti pygame.init() mizanim in None mishe ama agar pyageme.set_key(a,b) ro bezanim baes mishe ke ba negah dashtan eyek dokme binahayat bar ejra she . avalin argument mige ke agha baad e inke taraf ye bar dokme ro zad chegad takhir dashte bashe ta inke dokme chanbar ejra she? dovomin argument mighe hala ke darim dokme ro binahayat bar ejra mikonim beine har ejra chegad takhir bashe.adada be mili saniyas .adadasho avaz kon ta befahmi chi be chi e
+
+        # size har moraba albate badan taghiresh midim
+        #self.grid_width = self.width / tilesize
+        #self.grid_height = self.height / tilesize
+        self.item_spawn_delay = 5000
+        self.score =0
+
+    def load_data(self):   #load images
+        map_path='assets/images/maps/'+random.choice(['level3.5.tmx'])
+        self.map = Tiled(map_path,self)
+        self.bullet_normal = py.image.load('assets/images/weapons/bullet_normal.png')
+        self.player1_img = py.image.load('assets/images/characters/green_wifi_tank1.png')
+        self.ai_img = py.image.load('assets/images/characters/wifi_tank1.png')
+        smokes = ['assets/images/animation/smoke/smoke.png']
+        stones = ['assets/images/animation/smoke/stone1.png','assets/images/animation/smoke/dust.png']
+        #items = ['assets/images/items/big_logo.png','assets/images/items/laser_logo.png','assets/images/items/super_laser_logo.png','assets/images/items/auto_logo.png','assets/images/items/locker_logo.png','assets/images/items/shield_logo.png','assets/images/items/wifi_logo.png','assets/images/items/mine_logo.png']
+        self.item_images = {}
+        for item in ['big','laser','super_laser','auto','locker','shield','mine','wifi']:
+            self.item_images[item] = py.image.load('assets/images/items/'+item+'_logo.png')
+        self.smokes = []
+        self.stones = []
+        for smoke in smokes:
+            self.smokes.append(py.image.load(smoke).convert_alpha())
+        for stone in stones:
+            self.stones.append(py.image.load(stone).convert_alpha())
+        self.item_pos = []
+        for tile_object in self.map.tile_map.objects:
+            if tile_object.name == 'item':
+                self.item_pos.append((tile_object.x,tile_object.y,tile_object.width,tile_object.height))
+
+
+
+
+            # alan chon dg hich codi namunde file ro mibande
+
+    def joystick(self):
+        self.joysticks = []
+        for i in range(py.joystick.get_count()):
+            self.joysticks.append(py.joystick.Joystick(i))
+            self.joysticks[-1].init()
+            print(str(self.joysticks[-1].get_name()))
+            print(str(self.joysticks[-1].get_id()))
+        try:
+            self.player1_joystick = self.joysticks.pop(0)
+        except IndexError:
+            self.player1_joystick = None
+
+
+        try:
+            self.player2_joystick = self.joysticks.pop(0)
+        except IndexError:
+            self.player2_joystick = None
+
+
+        try:
+            self.player3_joystick = self.joysticks.pop(0)
+        except IndexError:
+            self.player3_joystick = None
+
+
+        try:
+            self.player4_joystick = self.joysticks.pop(0)
+        except IndexError:
+            self.player4_joystick = None
+    def draw_grid(self):
+        for x in range(0 , self.width , tilesize):
+            py.draw.line(self.game_display,(0,0,0),(x,0),(x,self.height)) # agar mikahi khata dide shan rang ro avaz kon
+        for y in range(0 , self.height , tilesize):
+            py.draw.line(self.game_display,(0,0,0),(0,y),(self.width,y))
+    def draw(self):
+        py.display.set_caption(str(self.clock.get_fps()))
+        self.map.render()
+        if py.time.get_ticks() - self.now >= self.spawn_time:
+
+            self.spawn_time += self.spawn_increaser
+            name = random.choice(['big','auto'])
+            pos = random.choice(self.item_pos)
+            Item(self,pos[0],pos[1],self.item_images[name],pos[2],pos[3],name)
+
+
+
+
+        #self.draw_grid()
+
+
+        self.all_sprites.draw(self.game_display)
+
+    def new_game(self): # hamechiro bara bazi jadid amade kone
+        self.load_data()
+        self.all_sprites = py.sprite.LayeredUpdates()
+        self.walls = py.sprite.Group()
+        self.players = py.sprite.Group()
+        self.players_bullets = py.sprite.Group()
+        self.ais = py.sprite.Group()
+        self.ais_bullet = py.sprite.Group()
+        self.helpers = py.sprite.Group()
+        self.joystick()
+        self.spawn_time = 1000
+        self.spawn_increaser = 10000
+        self.spawn_time_max = 120000
+        self.now = py.time.get_ticks()
+        for tile_object in self.map.tile_map.objects:
+            if tile_object.name == 'player':
+                self.player1 = Player(self,self.player1_joystick,tile_object.x,tile_object.y,0)
+            if tile_object.name == 'wall':
+                Wall(self,tile_object.x,tile_object.y,tile_object.width,tile_object.height)
+            if tile_object.name == 'ai':
+                Ai(self,tile_object.x,tile_object.y)
+            if tile_object.name == 'helper':
+                Helper(self,tile_object.x,tile_object.y,tile_object.type)
+
+
+
+
+
+
+                #if py.time.get_ticks() - self.spawn >= 100 :
+                #Item(self,tile_object.x,tile_object.y,random.choice(self.item_images),tile_object.width,tile_object.height)
+
+
+    def Quit(self):
+        py.quit()
+        quit()
+    def update(self):
+        self.all_sprites.update()
+    def event_for_keyboard(self):
+        for event in py.event.get():
+
+            if event.type == py.QUIT:
+                self.Quit()
+            if py.mouse.get_pressed()[0]:
+                self.game_loop()
+    def show_start_screen(self):
+        pass
+    def show_msg(self,text,x,y):
+        font1=py.font.Font('freesansbold.ttf',25)
+        text_surface=font1.render(text,True,(0,0,0))
+        text_rect = text_surface.get_rect()
+        text_rect.center=((x,y))
+        self.game_display.blit(text_surface,text_rect)
+
+
+
+    def game_loop(self) : # in mesle game_loope
+        self.dt = 0
+        self.new_game()
+
+        while True:
+            self.dt = self.clock.tick(40)/1000
+            self.event_for_keyboard()
+
+            self.draw()
+            self.update()
+
+            py.display.update()
+
+
+
+class Player(py.sprite.Sprite):
+    def __init__(self,game,joystick,x,y,id):
+        self._layer = 3
+        self.groups = game.all_sprites,game.players #
+        py.sprite.Sprite.__init__(self,self.groups)
+        self.game = game  # besh migim vase kudum bazi e
+        self.image_original = self.game.player1_img
+        self.image_original = py.transform.scale(self.image_original,(int(56/2),int(95/2)))
+        self.image_original = py.transform.rotozoom(self.image_original,-90,1)
+
+        self.rect_original = self.image_original.get_rect()
+        self.hit_rect = hit_rect
+
+        self.image = py.transform.scale(self.image_original,(int(self.rect_original.width/2),int(self.rect_original.height/2)))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x,y)
+        self.fire_rate = 500
+        self.last_shot = 0
+        self.angle = 0
+        self.rotate_speed = 200
+        self.rotate_right,self.rotate_left = False,False
+        self.vel = vec(1,0)
+        self.pos = vec(x,y)
+        self.speed = 150
+        self.hit_rect.center = self.pos
+        self.device = 'keyboard'
+        self.joystick = joystick
+        self.ability = None
+        self.ability_spawn = 0
+        self.ability_life = 10000
+        self.ammoperclick = 1
+        self.magazine = 0
+        self.checked_ability = False
+        self.score = self.game.score
+
+        self.momment_of_out_of_ammo = 0
+        self.reload_time = 5000
+
+    def ability_check(self):
+        if self.checked_ability == False:
+            if self.ability == 'big':
+                self.magazine = 3
+                self.fire_rate = 500
+            elif self.ability == None :
+                self.magazine = 5
+                self.fire_rate = 500
+            elif self.ability == 'auto':
+                self.magazine = 3
+                self.fire_rate = 250
+        self.checked_ability =  True
+
+
+
+
+
+    def score_and_logo(self):
+        self.game.show_msg(str(self.score),100,100)
+
+    def reload(self):
+        if py.time.get_ticks() - self.last_shot >= self.reload_time :
+            self.magazine = 5
+
+
+
+
+
+    def shoot(self,group_from,group_target):
+        if self.magazine > 0:
+            helper = ( ((self.hit_rect.size[0]/2 ) - 20) * math.cos(math.radians(self.angle%360)), ((self.hit_rect.size[1]/2)-20) * math.sin(math.radians(self.angle%360)))
+            now = py.time.get_ticks()
+            if now - self.last_shot > self.fire_rate :
+                self.last_shot = now
+                if self.ability == 'auto':
+                    for time in range(random.randint(5,8)):
+                        Bullet(self,self.game , self.pos.x + helper[0], self.pos.y - helper[1]  , vec(1,0).rotate(-self.angle - random.choice([-20,20,10,-10])),group_from,group_target,self.ability)
+
+                direction = vec(1,0).rotate(-self.angle)
+                Bullet(self,self.game , self.pos.x + helper[0], self.pos.y - helper[1]  , direction,group_from,group_target,self.ability)
+                self.magazine -=self.ammoperclick
+
+
+    def Joystick_Wireless_Controller(self):
+        if self.device == 'joystick':
+
+            self.vel = vec(0,0)
+            for event in py.event.get():
+                if event.type == py.JOYBUTTONDOWN:
+                    if event.button == 9 :
+                        self.game.Quit()
+
+            if -1<self.joystick.get_axis(2) <-0.2:
+                self.rotate_right = False
+                self.rotate_left = True
+            if 0.2<self.joystick.get_axis(2)<1  :
+                self.rotate_right = True
+                self.rotate_left = False
+            if -0.2<self.joystick.get_axis(2) <0.2 :
+                self.rotate_right = False
+                self.rotate_left = False
+
+            if self.joystick.get_button(7) == 1:
+                self.shoot(self.game.player1_bullets,self.game.ais)
+
+            if self.joystick.get_hat(0) == (0,1):
+                self.vel = vec(self.speed,0).rotate(-self.angle)
+            if self.joystick.get_hat(0) == (0,-1) :
+                self.vel = vec(-self.speed,0).rotate(-self.angle)
+    def Joystick_XBOX_ONE(self):
+        if self.device == 'joystick':
+
+            self.vel = vec(0,0)
+            for event in py.event.get():
+                if event.type == py.JOYBUTTONDOWN:
+                    if event.button == 7 :
+                        self.game.Quit()
+            if self.joystick.get_axis(2) <= -0.7 :
+                self.shoot(self.game.player1_bullets,self.game.ais)
+
+            if self.joystick.get_hat(0) == (0,1):
+                self.vel = vec(self.speed,0).rotate(-self.angle)
+            if self.joystick.get_hat(0) == (0,-1) :
+                self.vel = vec(-self.speed,0).rotate(-self.angle)
+
+            if -1<self.joystick.get_axis(4) <-0.4:
+                self.rotate_right = False
+                self.rotate_left = True
+            if 0.4<self.joystick.get_axis(4)<1  :
+                self.rotate_right = True
+                self.rotate_left = False
+            if -0.4<self.joystick.get_axis(4) <0.4 :
+                self.rotate_right = False
+                self.rotate_left = False
+    def Joystick_Twin_USB_Gamepad(self):
+        if self.device == 'joystick':
+
+            self.vel = vec(0,0)
+            for event in py.event.get():
+                if event.type == py.JOYBUTTONDOWN:
+                    if event.button == 9 :
+                        self.game.Quit()
+
+            if self.joystick.get_axis(3) >0.1:
+                self.rotate_right = True
+                self.rotate_left = False
+
+            if self.joystick.get_axis(3) <-0.1:
+                self.rotate_right = False
+                self.rotate_left = True
+
+            if -0.1< self.joystick.get_axis(3) <0.1 :
+                self.rotate_right = False
+                self.rotate_left = False
+
+            if self.joystick.get_button(5) == 1:
+                self.shoot(self.game.player1_bullets,self.game.ais)
+
+            if self.joystick.get_hat(0) == (0,1):
+                self.vel = vec(self.speed,0).rotate(-self.angle)
+            if self.joystick.get_hat(0) == (0,-1) :
+                self.vel = vec(-self.speed,0).rotate(-self.angle)
+
+    def key_check(self):
+        if self.device == 'keyboard':
+            self.vel = vec(0,0)
+            self.rotate_left = False
+            self.rotate_right = False
+
+            key_state = py.key.get_pressed()
+            if key_state[py.K_LEFT]:
+                self.rotate_left = True
+            if key_state[py.K_RIGHT]:
+                self.rotate_right = True
+            if key_state[py.K_UP]:
+                self.vel = vec(1,0).rotate(-self.angle)
+            if key_state[py.K_DOWN]:
+                self.vel = vec(-1,0).rotate(-self.angle)
+
+            if key_state[py.K_SPACE]:
+                self.shoot(self.game.players_bullets,self.game.ais)
+
+            if key_state[py.K_z]:
+                if self.joystick != None:
+                    self.device = 'joystick'
+
+
+
+    def check_collide(self,direction):
+        hits = py.sprite.spritecollide(self,self.game.walls,False,hit_rect_collide)
+        if hits: # a list of hited wall
+            if direction == 'x':
+                if self.vel.x > 0:  # going right
+                    self.pos.x = hits[0].rect.left - (self.hit_rect.width / 2)
+                if self.vel.x < 0 : #going left so we hit a wall from LEFT
+                    self.pos.x = hits[0].rect.right + (self.hit_rect.width / 2)
+                self.vel.x =0  # make it stop
+                self.hit_rect.centerx = self.pos.x
+            if direction == 'y':
+                if self.vel.y<0 : # going up
+                    self.pos.y = hits[0].rect.bottom + (self.hit_rect.height / 2)
+                if self.vel.y >0 :
+                    self.pos.y = hits[0].rect.top - (self.hit_rect.height / 2)
+                #self.vel.y = 0 # make it stop
+                self.hit_rect.centery = self.pos.y
+            helper = ( (self.hit_rect.size[0]/2) * math.cos(math.radians(self.angle%360)), (self.hit_rect.size[1]/2) * math.sin(math.radians(self.angle%360)))
+            Smoke(self.game,self.pos.x - helper[0],self.pos.y + helper[1] -random.randrange(0,20)* math.sin(math.radians(self.angle%360)),random.choice(self.game.smokes),vec(1,0).rotate(-self.angle-random.randint(-30,80)))
+            #Smoke(self.game,self.pos.x - helper[0],self.pos.y + helper[1],'fade_out',random.choice(self.game.stones),vec(1,0).rotate(-self.angle-random.randrange(-10,30)))
+            Smoke(self.game,self.pos.x - helper[0],self.pos.y + helper[1],self.game.stones[0],vec(.5,0).rotate(-self.angle-random.randrange(-60,60)))
+    def move(self,dt):
+        self.key_check()
+        if self.joystick != None:
+
+
+            if self.joystick.get_name() == 'Controller (Xbox One For Windows)':
+                self.Joystick_XBOX_ONE()
+            if self.joystick.get_name() == 'Wireless Controller':
+                self.Joystick_Wireless_Controller()
+            else:
+                self.Joystick_Twin_USB_Gamepad()
+
+
+
+        self.pos +=(self.vel * dt*self.speed)
+        #self.pos.x += (self.vel.x * dt) * math.cos(math.radians(self.angle))
+        #self.pos.y += (self.vel.y * dt) * math.sin(math.radians(self.angle))
+        self.hit_rect.centerx = self.pos.x
+        self.check_collide('x')
+        self.hit_rect.centery = self.pos.y
+        self.check_collide('y')
+
+        self.rect.center = self.hit_rect.center
+    def rotate(self):
+        if self.rotate_right :
+            self.angle -= (self.rotate_speed * self.game.dt) % 360
+        if self.rotate_left :
+            self.angle += (self.rotate_speed * self.game.dt) % 360
+
+        new_img = py.transform.rotozoom(self.image_original,self.angle,1)
+        self.old_center = self.rect.center
+        self.image = new_img
+        self.rect =self.image.get_rect(center=self.old_center)
+
+
+
+
+    def update(self):
+        self.score_and_logo()
+        self.ability_check()
+        py.draw.circle(self.game.game_display,(100,100,0),(int(self.pos.x),int(self.pos.y)),2)
+        self.rotate()
+        self.move(self.game.dt)
+        if self.magazine <=0 and self.ability == None :
+
+            self.reload()
+        if (py.time.get_ticks() - self.ability_spawn >= self.ability_life and self.ability!=None) or (self.magazine <=0 and self.ability != None):
+            self.ability = None
+            self.magazine = 5
+            self.ability_spawn = 0
+            self.ammoperclick = 1
+            self.fire_rate = 500
+            self.checked_ability = False
+
+        #self.death()
+
+class Wall(py.sprite.Sprite):
+    def __init__(self,game,x,y,w,h):
+
+        self.groups = game.walls # in tike ro nmidunm??
+        py.sprite.Sprite.__init__(self,self.groups)
+        self.game = game
+        self.rect = py.Rect((x,y,w,h))
+
+
+
+        self.rect.x = x
+        self.rect.y = y
+
+class Bullet(py.sprite.Sprite):
+    def __init__(self,shooter,game,x,y,direction,group_from,group_target,ability):
+        self._layer = 2
+        self.game = game
+        self.groups = self.game.all_sprites , group_from
+        py.sprite.Sprite.__init__(self,self.groups)
+        self.group_from = group_from
+        self.shooter = shooter
+        self.group_target = group_target
+        if ability == None:
+            self.image = self.game.bullet_normal
+        elif ability == 'big':
+            self.image = py.transform.scale(self.game.bullet_normal,(15,15))
+        elif ability == 'auto':
+            rand_size = random.randrange(3,8)
+            self.image = py.transform.scale(self.game.stones[0],(rand_size,rand_size))
+
+        self.pos = vec(x,y)
+        self.ability = ability
+
+        self.rect = self.image.get_rect()
+        self.rect.center = self.pos
+        self.speed = 200
+        if self.ability == 'big':
+            self.life_time = 2000
+
+        elif self.ability == None:
+            self.life_time = 10000
+        elif self.ability == 'auto':
+            self.life_time = 500
+            self.speed = 500
+        self.vel = vec(direction)
+        self.shoot = False
+        self.time1 = py.time.get_ticks()
+
+
+    def death(self):
+
+        hits = py.sprite.groupcollide(self.group_from,self.group_target,False,True,py.sprite.collide_rect_ratio(0.5))
+        if hits:
+            for tank in hits:
+                self.shooter.score += 1
+            #death animation
+            self.kill()
+    def check_collide_wall(self,direction):
+
+
+
+        hits = py.sprite.spritecollide(self,self.game.walls,False)
+        if hits:
+            if direction == 'x':
+                if self.vel.x > 0:  # going right
+                    self.pos.x = hits[0].rect.left - (self.rect.width / 2)
+                if self.vel.x < 0 : #going left so we hit a wall from LEFT
+                    self.pos.x = hits[0].rect.right + (self.rect.width / 2)
+                self.vel.x *= -1
+                self.rect.centerx = self.pos.x
+            if direction == 'y':
+                if self.vel.y<0 : # going up
+                    self.pos.y = hits[0].rect.bottom + (self.rect.height / 2)
+                if self.vel.y >0 :
+                    self.pos.y = hits[0].rect.top - (self.rect.height / 2)
+                self.vel.y *= -1
+                self.rect.centery = self.pos.y
+
+
+
+    def move(self):
+        self.pos +=(self.vel * self.game.dt * self.speed)
+        #self.pos.x += (self.vel.x * dt) * math.cos(math.radians(self.angle))
+        #self.pos.y += (self.vel.y * dt) * math.sin(math.radians(self.angle))
+        self.rect.centerx = self.pos.x
+        self.check_collide_wall('x')
+        self.rect.centery = self.pos.y
+        self.check_collide_wall('y')
+
+        self.rect.center = self.rect.center
+    def update(self):
+        self.move()
+        time2 = py.time.get_ticks()
+        self.death()
+        if time2 - self.time1 >= self.life_time:
+            #helper = ( (self.rect.size[0]/2) * math.cos(math.radians(self.angle%360)), (self.rect.size[1]/2) * math.sin(math.radians(self.angle%360)))
+            if self.ability == None:
+                for angle in [random.randrange(-180,180) for i in range(5)]:
+                    Smoke(self.game,self.pos.x ,self.pos.y ,self.game.stones[1],(self.vel * -1).rotate(angle),150)
+            elif self.ability == 'big':
+                for time in range(random.randrange(5,10)):
+                    Bullet(self.shooter,self.game , self.pos.x , self.pos.y  , self.vel.rotate(random.randint(-80,80)),self.game.players,self.game.ais,'auto')
+
+            self.kill()
+
+
+class Ai(py.sprite.Sprite):
+    def __init__(self,game,x,y):
+        self._layer = 3
+        self.game = game
+        self.groups = self.game.all_sprites , self.game.ais
+        py.sprite.Sprite.__init__(self,self.groups)
+        self.image_original = py.transform.scale(self.game.ai_img,(int(56/2),int(95/2)))
+        self.hit_rect = hit_rect.copy()
+        self.image_original = py.transform.rotate(self.image_original,-90)
+        self.image = self.image_original.copy()
+        self.pos = vec(x,y)
+        self.angle = 0
+        self.score =0
+
+        #self.direction = vec(1,0).rotate(-self.angle)
+        self.speed = 100
+        self.vel = vec(1,0)
+        self.fire_rate = 1000000000000000
+        self.last_shot = 0
+        self.rect = self.image.get_rect(center = (self.pos.x,self.pos.y))
+        self.hit_rect.center = self.pos
+
+        self.visited = []
+        self.to_visited = []
+        self.helpers_to_go = []
+        self.target = vec(self.pos)
+
+    def shoot(self):
+        helper = ( (self.hit_rect.size[0]/2) * math.cos(math.radians(self.angle%360)), (self.hit_rect.size[1]/2) * math.sin(math.radians(self.angle%360)))
+
+        now = py.time.get_ticks()
+        if now - self.last_shot > self.fire_rate:
+            self.last_shot = now
+            direction = vec(1,0).rotate(-self.angle)
+            bullet = Bullet(self,self.game , self.pos.x+helper[0],self.pos.y - helper[1] , direction,self.game.ais_bullet,self.game.players,None)
+
+    def death_check(self):pass
+
+    def check_collide_other_ais(self):
+        for ai in self.game.ais:
+            if ai != self:
+
+                if 0<(self.pos - ai.pos).length() <25:
+                    self.vel = ((self.pos - ai.pos).normalize())
+
+
+    def check_collide(self,direction):
+        hits = py.sprite.spritecollide(self,self.game.walls,False,hit_rect_collide)
+        if hits:
+            if direction == 'x':
+                if hits[0].rect.centerx > self.hit_rect.centerx:  # going right
+                    self.pos.x = hits[0].rect.left - (self.hit_rect.width / 2)
+                if hits[0].rect.centerx < self.hit_rect.centerx:#going left so we hit a wall from LEFT
+                    self.pos.x = hits[0].rect.right + (self.hit_rect.width / 2)
+                self.vel.x = 0  # make it stop
+                self.hit_rect.centerx = self.pos.x
+            if direction == 'y':
+                if hits[0].rect.centery < self.hit_rect.centery:# going up
+                    self.pos.y = hits[0].rect.bottom + (self.hit_rect.height / 2)
+                if hits[0].rect.centery > self.hit_rect.centery :
+                    self.pos.y = hits[0].rect.top - (self.hit_rect.height / 2)
+                 # make it stop
+                self.hit_rect.centery = self.pos.y
+            helper = ( (self.hit_rect.size[0]/2) * math.cos(math.radians(self.angle%360)), (self.hit_rect.size[1]/2) * math.sin(math.radians(self.angle%360)))
+            Smoke(self.game,self.pos.x - helper[0],self.pos.y + helper[1] -random.randrange(0,20)* math.sin(math.radians(self.angle%360)),random.choice(self.game.smokes),vec(1,0).rotate(-self.angle-random.randint(-30,90)))
+            #Smoke(self.game,self.pos.x - helper[0],self.pos.y + helper[1],'fade_out',random.choice(self.game.stones),vec(1,0).rotate(-self.angle-random.randrange(-10,30)))
+            Smoke(self.game,self.pos.x - helper[0],self.pos.y + helper[1],self.game.stones[0],vec(.5,0).rotate(-self.angle-random.randrange(-60,60)))
+
+
+    def choose_player(self):
+        distances = []
+        for player in self.game.players:
+            distances.append(((player.pos - self.pos).length(),player))
+        temp =[]
+
+        self.player = sorted(distances,key=lambda x:x[0])[0][1]
+
+
+        #py.draw.circle(self.game.game_display,(0,200,0),(int(self.player.pos.x),int(self.player.pos.y)),300)
+        for helper in self.game.helpers:
+            if 0<(self.player.pos - helper.pos).length() <300:
+
+                temp.append(((self.player.pos - helper.pos).length(),helper))
+        self.helpers_to_go = []
+
+
+        for x in sorted(self.helpers_to_go,reverse = True,key = lambda x:x[0]):
+            self.helpers_to_go.append(x[1])
+
+
+
+
+
+    def choose_helper(self):
+        if len(self.to_visited)>0:
+            pass
+        else:
+            
+            distances = []
+            for target in self.helpers_to_go:
+                if target not in self.visited:
+                    distances.append(((target.pos - self.pos).length(),target))
+            if len(distances) != 0:
+
+                self.target = sorted(distances,key=lambda x:x[0])[0][1]
+                self.to_visited.append(self.target)
+                py.draw.rect(self.game.game_display,(200,0,0),(self.target.pos.x,self.target.pos.y,10,10))
+                self.angle = (self.target.pos - self.pos).angle_to(vec(1,0))%360
+
+    def move_to_helper(self):
+        self.pos += self.vel * self.game.dt
+
+        self.hit_rect.centerx = self.pos.x
+        #self.check_collide('x')
+        self.hit_rect.centery = self.pos.y
+        #self.check_collide('y')
+        self.rect.center = self.hit_rect.center
+        if (self.target.pos - self.pos).length()<5:
+            self.visited.append(self.target)
+            if len(self.to_visited)>0:
+                self.to_visited.pop(0)
+            if len(self.visited)> 10:
+                self.visited.pop(0)
+
+
+    def rotate(self):
+        self.angle = (self.target.pos - self.pos).angle_to(vec(1,0))%360
+
+        new_img = py.transform.rotozoom(self.image_original,self.angle,1)
+        self.old_center = self.rect.center
+        self.image = new_img
+        self.rect =self.image.get_rect(center=self.old_center)
+        self.vel = vec(self.speed,0).rotate(-self.angle)
+
+
+
+
+
+
+
+
+
+    def move(self):
+        self.check_collide_other_ais()
+        self.pos += (self.vel * self.game.dt * 100)
+        self.hit_rect.centerx = self.pos.x
+        self.check_collide('x')
+        self.hit_rect.centery = self.pos.y
+        self.check_collide('y')
+        self.rect.center = self.hit_rect.center
+
+
+
+    def update(self):
+        self.choose_player()
+        self.choose_helper()
+        self.rotate()
+        self.move_to_helper()
+
+class Helper(py.sprite.Sprite):
+    def __init__(self,game,x,y,type):
+
+        self.groups = game.helpers # in tike ro nmidunm??
+        py.sprite.Sprite.__init__(self,self.groups)
+        self.game = game
+        self.pos = vec(x,y)
+
+
+
+class Tiled:
+    def __init__(self,path,game):
+        self.game = game
+        self.tile_map = pytmx.load_pygame(path, pixelalpha = True)
+        self.width = self.tile_map.width * tilesize
+        self.height = self.tile_map.height * tilesize
+    def render(self):
+        surface = py.Surface((self.width,self.height))
+        for layer in self.tile_map.visible_layers:
+            if isinstance(layer,pytmx.TiledTileLayer):
+                for x ,y ,gid in layer:
+                    tile_image = self.tile_map.get_tile_image_by_gid(gid)
+                    surface.blit(tile_image,(x * tilesize , y * tilesize))
+        surface_rect = surface.get_rect()
+        self.game.game_display.blit(surface,surface_rect)
+
+
+
+
+
+
+
+
+class Item(py.sprite.Sprite):
+    def __init__(self,game,x,y,photo,w,h,type1):
+        self._layer = 2
+        self.game = game
+        self.groups = self.game.all_sprites
+        py.sprite.Sprite.__init__(self,self.groups)
+        self.image = py.transform.scale(photo,(30,30))
+        self.rect = self.image.get_rect(center = (x,y))
+        self.life = 10000
+        self.type = type1
+        self.spawn = py.time.get_ticks()
+        self.x =x
+        self.y = y
+
+
+
+
+
+
+    def check_collision(self):
+        hits = py.sprite.spritecollide(self,self.game.players,False)
+        if hits:
+            for player in hits:
+                player.ability = self.type
+                player.ability_spawn = py.time.get_ticks()
+                player.checked_ability = False
+
+            self.kill()
+
+
+
+    def update(self):
+        self.check_collision()
+        now = py.time.get_ticks()
+        if now - self.spawn >= self.life:
+
+            self.kill()
+            Smoke(self.game,self.x ,self.y,self.game.smokes[0],vec(.5,0).rotate(-random.randrange(-60,0)),1000)
+            Smoke(self.game,self.x ,self.y,self.game.smokes[0],vec(.5,0).rotate(-random.randrange(0,60)),700)
+
+
+
+
+class Smoke(py.sprite.Sprite):
+
+    def __init__(self,game,x,y,photo,direction,time  = 500):
+        self._layer = 2
+        self.game = game
+        self.groups = self.game.all_sprites
+        py.sprite.Sprite.__init__(self,self.groups)
+        #size = random.randrange(10,25)
+        if photo == self.game.stones[0]:
+            rand_size = random.randrange(1,7)
+            self.image = py.transform.scale(photo,(rand_size,rand_size))
+        else:
+            self.image = photo
+        self.pos = vec(x,y)
+        self.rect = self.image.get_rect(center= self.pos)
+
+        self.fade_speed = 1
+        self.life = time
+        self.spawn = py.time.get_ticks()
+
+
+        if photo in self.game.stones :
+            self.speed = 10
+
+        else:
+            self.speed = 5
+        self.vel = -direction * self.speed
+
+
+
+
+    def update(self):
+        #self.image.set_alpha(self.transparecy)
+        now = py.time.get_ticks()
+        if now - self.spawn > self.life:
+            self.kill()
+        self.pos +=(self.vel * .3)
+
+        self.rect.center = self.pos
+
+
+
+
+
+
+game1 = Game()
+game1.game_loop()
