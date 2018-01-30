@@ -3,44 +3,62 @@
 
 
 
+# commenta baraye ham teamim bud
 
 tilesize = 9
 from collections import defaultdict
-import pygame as py # be ja pygame benvisim py
+import pygame as py
 import math
 import random
 import pytmx
-import pytweening
+
 vec = py.math.Vector2
 hit_rect = py.Rect(0,0,40,40)
 def hit_rect_collide(a,b):
     return a.hit_rect.colliderect(b.rect)
+
+
+
+
+
+
+
+
+
 class Game:
     def __init__(self):
         py.init()
-        self.width,self.height = 1024,768
+        self.width,self.height = 1017,810
         self.game_display = py.display.set_mode((self.width,self.height))
         py.display.set_caption('this is the last time')
         self.clock = py.time.Clock()
         py.key.set_repeat(500,100) #vagti pygame.init() mizanim in None mishe ama agar pyageme.set_key(a,b) ro bezanim baes mishe ke ba negah dashtan eyek dokme binahayat bar ejra she . avalin argument mige ke agha baad e inke taraf ye bar dokme ro zad chegad takhir dashte bashe ta inke dokme chanbar ejra she? dovomin argument mighe hala ke darim dokme ro binahayat bar ejra mikonim beine har ejra chegad takhir bashe.adada be mili saniyas .adadasho avaz kon ta befahmi chi be chi e
+        self.keyboard = [[py.K_LEFT,py.K_RIGHT,py.K_UP,py.K_DOWN,py.K_SPACE,py.K_1],[py.K_y,py.K_j,py.K_g,py.K_h,py.K_b,py.K_3],
+                        [py.K_m,py.K_n,py.K_k,py.K_l,py.K_j,py.K_3],[py.K_a,py.K_d,py.K_w,py.K_s,py.K_q,py.K_4]]
 
-        # size har moraba albate badan taghiresh midim
-        #self.grid_width = self.width / tilesize
-        #self.grid_height = self.height / tilesize
         self.item_spawn_delay = 5000
         self.score =0
 
+
     def load_data(self):   #load images
-        map_path='assets/images/maps/'+random.choice(['level3.5.tmx'])
+        map_path='assets/images/maps/'+random.choice(['level3'])+'.'+str(self.number_of_player)+'.tmx'
         self.map = Tiled(map_path,self)
         self.bullet_normal = py.image.load('assets/images/weapons/bullet_normal.png')
-        self.player1_img = py.image.load('assets/images/characters/green_wifi_tank1.png')
-        self.ai_img = py.image.load('assets/images/characters/wifi_tank1.png')
+        self.bullet_big = py.image.load('assets/images/weapons/bullet_big.png')
+        self.player1_img = [(py.image.load('assets/images/characters/green/tanks/'+'green_'+x+'.png').convert_alpha() ,py.image.load('assets/images/characters/green/logos/'+'green_'+x+'.png').convert_alpha()) for x in ['wifi','big','shotgun','shield','normal'] ]
+        self.player2_img =  [(py.image.load('assets/images/characters/blue/tanks/'+'blue_'+x+'.png').convert_alpha(),py.image.load('assets/images/characters/blue/logos/'+'blue_'+x+'.png').convert_alpha()) for x in ['wifi','big','shotgun','shield','normal'] ]
+        self.player3_img =  [(py.image.load('assets/images/characters/red/tanks/'+'red_'+x+'.png').convert_alpha(),py.image.load('assets/images/characters/red/logos/'+'red_'+x+'.png').convert_alpha()) for x in ['wifi','big','shotgun','shield','normal'] ]
+        self.player4_img =  [(py.image.load('assets/images/characters/yellow/tanks/'+'yellow_'+x+'.png').convert_alpha(),py.image.load('assets/images/characters/yellow/logos/'+'yellow_'+x+'.png').convert_alpha()) for x in ['wifi','big','shotgun','shield','normal'] ]
+        self.player_img = [self.player1_img,self.player2_img,self.player3_img,self.player4_img]
+        self.ai_img = py.image.load('assets/images/characters/bot/wifi_tank1.png').convert_alpha()
+
+
+
         smokes = ['assets/images/animation/smoke/smoke.png']
         stones = ['assets/images/animation/smoke/stone1.png','assets/images/animation/smoke/dust.png']
         #items = ['assets/images/items/big_logo.png','assets/images/items/laser_logo.png','assets/images/items/super_laser_logo.png','assets/images/items/auto_logo.png','assets/images/items/locker_logo.png','assets/images/items/shield_logo.png','assets/images/items/wifi_logo.png','assets/images/items/mine_logo.png']
         self.item_images = {}
-        for item in ['big','laser','super_laser','auto','locker','shield','mine','wifi']:
+        for item in ['big','shotgun','mine','wifi','shield']:
             self.item_images[item] = py.image.load('assets/images/items/'+item+'_logo.png')
         self.smokes = []
         self.stones = []
@@ -56,7 +74,7 @@ class Game:
 
 
 
-            # alan chon dg hich codi namunde file ro mibande
+
 
     def joystick(self):
         self.joysticks = []
@@ -98,7 +116,7 @@ class Game:
         if py.time.get_ticks() - self.now >= self.spawn_time:
 
             self.spawn_time += self.spawn_increaser
-            name = random.choice(['big','auto'])
+            name = random.choice(['big','shotgun','shield'])
             pos = random.choice(self.item_pos)
             Item(self,pos[0],pos[1],self.item_images[name],pos[2],pos[3],name)
 
@@ -110,7 +128,7 @@ class Game:
 
         self.all_sprites.draw(self.game_display)
 
-    def new_game(self): # hamechiro bara bazi jadid amade kone
+    def new_game(self):
         self.load_data()
         self.all_sprites = py.sprite.LayeredUpdates()
         self.walls = py.sprite.Group()
@@ -125,12 +143,24 @@ class Game:
         self.spawn_time_max = 120000
         self.now = py.time.get_ticks()
         for tile_object in self.map.tile_map.objects:
-            if tile_object.name == 'player':
-                self.player1 = Player(self,self.player1_joystick,tile_object.x,tile_object.y,0)
+
+            if tile_object.name == 'player1':
+                Player(self,self.player1_joystick,tile_object.x,tile_object.y,1)
+            if tile_object.name == 'player2':
+                Player(self,self.player2_joystick,tile_object.x,tile_object.y,2)
+            if tile_object.name == 'player3':
+                Player(self,self.player3_joystick,tile_object.x,tile_object.y,3)
+            if tile_object.name == 'player4':
+                Player(self,self.player4_joystick,tile_object.x,tile_object.y,4)
+
+
+
+
             if tile_object.name == 'wall':
                 Wall(self,tile_object.x,tile_object.y,tile_object.width,tile_object.height)
-            if tile_object.name == 'ai':
-                Ai(self,tile_object.x,tile_object.y)
+        #    if tile_object.name == 'ai':
+                #if len(self.ais) <self.ai_count
+                #Ai(self,tile_object.x,tile_object.y)
             if tile_object.name == 'helper':
                 Helper(self,tile_object.x,tile_object.y,tile_object.type)
 
@@ -141,43 +171,84 @@ class Game:
 
                 #if py.time.get_ticks() - self.spawn >= 100 :
                 #Item(self,tile_object.x,tile_object.y,random.choice(self.item_images),tile_object.width,tile_object.height)
+    def show_start_screen(self):
+        self.main_menu_image =py.image.load('assets/images/menu/Tank_main_menu1.png').convert_alpha()
+        self.numbers = [py.image.load(x).convert_alpha() for x in ['assets/images/menu/1.png','assets/images/menu/2.png','assets/images/menu/3.png','assets/images/menu/4.png','assets/images/menu/12.png','assets/images/menu/22.png','assets/images/menu/32.png','assets/images/menu/42.png']]
+        self.game_display.blit(self.main_menu_image,((0,0)))
+
+        self.game_display.blit(self.numbers[0],((50,600)))
+        self.game_display.blit(self.numbers[1],((50,500)))
+        self.game_display.blit(self.numbers[2],((450,620)))
+        self.game_display.blit(self.numbers[3],((450,500)))
 
 
+
+        py.display.update()
+        self.waiting()
+
+
+
+    def waiting(self):
+
+        wait = True
+        while wait:
+            self.clock.tick(40)
+
+            self.event_for_keyboard()
+            for pos in [(50,600,0),(50,500,1),(450,620,2),((450,500,3))]:
+                if pos[0]<py.mouse.get_pos()[0]<pos[0]+ 388 and pos[1]<py.mouse.get_pos()[1]<123+ pos[1]:
+
+                    self.game_display.blit(self.numbers[pos[2]+4],((pos[0],pos[1])))
+                    if py.mouse.get_pressed()[0]:
+                        self.number_of_player = pos[2] +1
+
+                        wait = False
+            py.display.update()
+
+
+
+    def game_over(self):
+        self.game_display.fill((0,0,0))
+        self.show_msg('Game Over',self.width/2,self.height/2,'title.ttf',100,(0,255,0))
+        self.Quit()
     def Quit(self):
         py.quit()
         quit()
     def update(self):
         self.all_sprites.update()
+        if len(self.ais) == 0:pass
+            #self.game_loop()
+        elif len(self.players) == 0:pass
+
     def event_for_keyboard(self):
         for event in py.event.get():
-
             if event.type == py.QUIT:
                 self.Quit()
-            if py.mouse.get_pressed()[0]:
-                self.game_loop()
-    def show_start_screen(self):
-        pass
-    def show_msg(self,text,x,y):
-        font1=py.font.Font('freesansbold.ttf',25)
-        text_surface=font1.render(text,True,(0,0,0))
+
+
+
+    def show_msg(self,text,x,y,font,size,color):
+        font1=py.font.Font(font,size)
+        text_surface=font1.render(text,True,color)
         text_rect = text_surface.get_rect()
         text_rect.center=((x,y))
         self.game_display.blit(text_surface,text_rect)
 
 
 
-    def game_loop(self) : # in mesle game_loope
-        self.dt = 0
-        self.new_game()
+    def game_loop(self) :
 
-        while True:
-            self.dt = self.clock.tick(40)/1000
-            self.event_for_keyboard()
+            self.dt = 0
+            self.new_game()
 
-            self.draw()
-            self.update()
+            while True:
+                self.dt = self.clock.tick(40)/1000
+                self.event_for_keyboard()
 
-            py.display.update()
+                self.draw()
+                self.update()
+
+                py.display.update()
 
 
 
@@ -186,13 +257,17 @@ class Player(py.sprite.Sprite):
         self._layer = 3
         self.groups = game.all_sprites,game.players #
         py.sprite.Sprite.__init__(self,self.groups)
-        self.game = game  # besh migim vase kudum bazi e
-        self.image_original = self.game.player1_img
-        self.image_original = py.transform.scale(self.image_original,(int(56/2),int(95/2)))
+        self.game = game
+        self.key_board = self.game.keyboard[id - 1]
+
+        self.images = self.game.player_img[id - 1]
+
+        self.image_original_logo,self.image_original= self.images[len(self.game.player1_img)-1][1],self.images[len(self.game.player1_img)-1][0]
+
         self.image_original = py.transform.rotozoom(self.image_original,-90,1)
 
         self.rect_original = self.image_original.get_rect()
-        self.hit_rect = hit_rect
+        self.hit_rect = hit_rect.copy()
 
         self.image = py.transform.scale(self.image_original,(int(self.rect_original.width/2),int(self.rect_original.height/2)))
         self.rect = self.image.get_rect()
@@ -215,6 +290,10 @@ class Player(py.sprite.Sprite):
         self.magazine = 0
         self.checked_ability = False
         self.score = self.game.score
+        self.id = id
+        self.health = 1
+
+
 
         self.momment_of_out_of_ammo = 0
         self.reload_time = 5000
@@ -222,14 +301,49 @@ class Player(py.sprite.Sprite):
     def ability_check(self):
         if self.checked_ability == False:
             if self.ability == 'big':
+
                 self.magazine = 3
                 self.fire_rate = 500
+                index = 1
+
             elif self.ability == None :
+
                 self.magazine = 5
                 self.fire_rate = 500
-            elif self.ability == 'auto':
+                index = len(self.images) - 1
+            elif self.ability == 'shotgun':
                 self.magazine = 3
                 self.fire_rate = 250
+                index = 2
+
+
+            elif self.ability == 'shield':
+                self.health = 2
+                self.magazine = 5
+                self.fire_rate = 500
+                index =  3
+
+
+
+
+
+            self.image_original_logo,self.image_original = self.images[index][1],self.images[index][0]
+            if self.ability != 'shield':
+                self.image_original = py.transform.scale(self.image_original,(int(56/2),int(95/2)))
+            else:
+                self.image_original = py.transform.scale(self.image_original,(int(83/1.7),int(95/1.7)))
+
+            self.image_original = py.transform.rotozoom(self.image_original,-90,1)
+
+
+            self.image = py.transform.scale(self.image_original,(int(self.rect_original.width/1.5),int(self.rect_original.height/1.5)))
+            self.hit_rect.center = self.pos
+
+
+
+
+
+
         self.checked_ability =  True
 
 
@@ -237,7 +351,11 @@ class Player(py.sprite.Sprite):
 
 
     def score_and_logo(self):
-        self.game.show_msg(str(self.score),100,100)
+
+        if self.id == 1:
+            self.game.game_display.blit(self.image_original_logo,(913- 60,38))
+            self.game.show_msg(str(self.score),903,110,'freesansbold.ttf',20,(0,0,0))
+
 
     def reload(self):
         if py.time.get_ticks() - self.last_shot >= self.reload_time :
@@ -253,7 +371,7 @@ class Player(py.sprite.Sprite):
             now = py.time.get_ticks()
             if now - self.last_shot > self.fire_rate :
                 self.last_shot = now
-                if self.ability == 'auto':
+                if self.ability == 'shotgun':
                     for time in range(random.randint(5,8)):
                         Bullet(self,self.game , self.pos.x + helper[0], self.pos.y - helper[1]  , vec(1,0).rotate(-self.angle - random.choice([-20,20,10,-10])),group_from,group_target,self.ability)
 
@@ -343,27 +461,35 @@ class Player(py.sprite.Sprite):
                 self.vel = vec(-self.speed,0).rotate(-self.angle)
 
     def key_check(self):
+
         if self.device == 'keyboard':
             self.vel = vec(0,0)
             self.rotate_left = False
             self.rotate_right = False
 
-            key_state = py.key.get_pressed()
-            if key_state[py.K_LEFT]:
-                self.rotate_left = True
-            if key_state[py.K_RIGHT]:
-                self.rotate_right = True
-            if key_state[py.K_UP]:
-                self.vel = vec(1,0).rotate(-self.angle)
-            if key_state[py.K_DOWN]:
-                self.vel = vec(-1,0).rotate(-self.angle)
 
-            if key_state[py.K_SPACE]:
+        key_state = py.key.get_pressed()
+        if key_state[self.key_board[0]]:
+            self.rotate_left = True
+        if key_state[self.key_board[1]]:
+            self.rotate_right = True
+        if key_state[self.key_board[2]]:
+            self.vel = vec(1,0).rotate(-self.angle)
+        if key_state[self.key_board[3]]:
+            self.vel = vec(-1,0).rotate(-self.angle)
+
+        if key_state[self.key_board[4]]:
+            if len(self.game.ais) == 0:
+                self.shoot(self.game.players_bullets,self.game.players)
+            else:
                 self.shoot(self.game.players_bullets,self.game.ais)
 
-            if key_state[py.K_z]:
-                if self.joystick != None:
-                    self.device = 'joystick'
+        if key_state[py.K_z]:
+            if self.joystick != None:
+                self.device = 'joystick'
+
+
+
 
 
 
@@ -382,7 +508,7 @@ class Player(py.sprite.Sprite):
                     self.pos.y = hits[0].rect.bottom + (self.hit_rect.height / 2)
                 if self.vel.y >0 :
                     self.pos.y = hits[0].rect.top - (self.hit_rect.height / 2)
-                #self.vel.y = 0 # make it stop
+
                 self.hit_rect.centery = self.pos.y
             helper = ( (self.hit_rect.size[0]/2) * math.cos(math.radians(self.angle%360)), (self.hit_rect.size[1]/2) * math.sin(math.radians(self.angle%360)))
             Smoke(self.game,self.pos.x - helper[0],self.pos.y + helper[1] -random.randrange(0,20)* math.sin(math.radians(self.angle%360)),random.choice(self.game.smokes),vec(1,0).rotate(-self.angle-random.randint(-30,80)))
@@ -442,12 +568,12 @@ class Player(py.sprite.Sprite):
             self.fire_rate = 500
             self.checked_ability = False
 
-        #self.death()
+
 
 class Wall(py.sprite.Sprite):
     def __init__(self,game,x,y,w,h):
 
-        self.groups = game.walls # in tike ro nmidunm??
+        self.groups = game.walls
         py.sprite.Sprite.__init__(self,self.groups)
         self.game = game
         self.rect = py.Rect((x,y,w,h))
@@ -466,11 +592,11 @@ class Bullet(py.sprite.Sprite):
         self.group_from = group_from
         self.shooter = shooter
         self.group_target = group_target
-        if ability == None:
+        if ability == None or ability == 'shield':
             self.image = self.game.bullet_normal
         elif ability == 'big':
-            self.image = py.transform.scale(self.game.bullet_normal,(15,15))
-        elif ability == 'auto':
+            self.image = py.transform.scale(self.game.bullet_big,(15,15))
+        elif ability == 'shotgun':
             rand_size = random.randrange(3,8)
             self.image = py.transform.scale(self.game.stones[0],(rand_size,rand_size))
 
@@ -485,22 +611,34 @@ class Bullet(py.sprite.Sprite):
 
         elif self.ability == None:
             self.life_time = 10000
-        elif self.ability == 'auto':
+        elif self.ability == 'shotgun':
             self.life_time = 500
             self.speed = 500
+        elif self.ability == 'shield':
+            self.life_time = 5000
         self.vel = vec(direction)
         self.shoot = False
         self.time1 = py.time.get_ticks()
 
 
     def death(self):
+        if self.group_from == self.game.players_bullets and self.group_target == self.game.players:
+            hits = py.sprite.spritecollide(self,self.group_target,False,py.sprite.collide_rect_ratio(0.5))
+            if hits:
 
-        hits = py.sprite.groupcollide(self.group_from,self.group_target,False,True,py.sprite.collide_rect_ratio(0.5))
-        if hits:
-            for tank in hits:
+                for tank in hits:
+                    if tank != self.shooter :
+                        tank.kill()
+                        self.shooter.score += 1
+                        self.kill()
+        else:
+            hits = py.sprite.groupcollide(self.group_from,self.group_target,False,True,py.sprite.collide_rect_ratio(0.5))
+            if hits:
+
+
                 self.shooter.score += 1
-            #death animation
-            self.kill()
+                #death animation
+                self.kill()
     def check_collide_wall(self,direction):
 
 
@@ -545,7 +683,7 @@ class Bullet(py.sprite.Sprite):
                     Smoke(self.game,self.pos.x ,self.pos.y ,self.game.stones[1],(self.vel * -1).rotate(angle),150)
             elif self.ability == 'big':
                 for time in range(random.randrange(5,10)):
-                    Bullet(self.shooter,self.game , self.pos.x , self.pos.y  , self.vel.rotate(random.randint(-80,80)),self.game.players,self.game.ais,'auto')
+                    Bullet(self.shooter,self.game , self.pos.x , self.pos.y  , self.vel.rotate(random.randint(-80,80)),self.game.players,self.game.ais,'shotgun')
 
             self.kill()
 
@@ -563,28 +701,32 @@ class Ai(py.sprite.Sprite):
         self.pos = vec(x,y)
         self.angle = 0
         self.score =0
+        self.health = 1
 
         #self.direction = vec(1,0).rotate(-self.angle)
         self.speed = 100
         self.vel = vec(1,0)
-        self.fire_rate = 1000000000000000
+        self.fire_rate = 1000
         self.last_shot = 0
         self.rect = self.image.get_rect(center = (self.pos.x,self.pos.y))
         self.hit_rect.center = self.pos
 
         self.visited = []
         self.to_visited = []
-        self.helpers_to_go = []
+        self.helpers_to_go = set()
         self.target = vec(self.pos)
+        self.help_spawn = 0
+        self.used_help = False
 
     def shoot(self):
-        helper = ( (self.hit_rect.size[0]/2) * math.cos(math.radians(self.angle%360)), (self.hit_rect.size[1]/2) * math.sin(math.radians(self.angle%360)))
+        if 0<(self.player.pos - self.pos).length()<200:
+            helper = ( (self.hit_rect.size[0]/2) * math.cos(math.radians(self.angle%360)), (self.hit_rect.size[1]/2) * math.sin(math.radians(self.angle%360)))
 
-        now = py.time.get_ticks()
-        if now - self.last_shot > self.fire_rate:
-            self.last_shot = now
-            direction = vec(1,0).rotate(-self.angle)
-            bullet = Bullet(self,self.game , self.pos.x+helper[0],self.pos.y - helper[1] , direction,self.game.ais_bullet,self.game.players,None)
+            now = py.time.get_ticks()
+            if now - self.last_shot > self.fire_rate:
+                self.last_shot = now
+                direction = vec(1,0).rotate(-self.angle)
+                bullet = Bullet(self,self.game , self.pos.x+helper[0],self.pos.y - helper[1] , direction,self.game.ais_bullet,self.game.players,None)
 
     def death_check(self):pass
 
@@ -606,38 +748,60 @@ class Ai(py.sprite.Sprite):
                     self.pos.x = hits[0].rect.right + (self.hit_rect.width / 2)
                 self.vel.x = 0  # make it stop
                 self.hit_rect.centerx = self.pos.x
+
+                #self.visited = []
+                if not self.used_help:
+                    self.help2()
+                    self.help_spawn = py.time.get_ticks()
+                #self.choose_helper()
             if direction == 'y':
                 if hits[0].rect.centery < self.hit_rect.centery:# going up
                     self.pos.y = hits[0].rect.bottom + (self.hit_rect.height / 2)
                 if hits[0].rect.centery > self.hit_rect.centery :
                     self.pos.y = hits[0].rect.top - (self.hit_rect.height / 2)
+
+                #self.help2()
+                #if len(self.visited) >3:
+                #self.visited = []
+                #if not self.used_help:
+                    ##self.help_spawn = py.time.get_ticks()
+
+                #self.choose_helper()
                  # make it stop
                 self.hit_rect.centery = self.pos.y
             helper = ( (self.hit_rect.size[0]/2) * math.cos(math.radians(self.angle%360)), (self.hit_rect.size[1]/2) * math.sin(math.radians(self.angle%360)))
             Smoke(self.game,self.pos.x - helper[0],self.pos.y + helper[1] -random.randrange(0,20)* math.sin(math.radians(self.angle%360)),random.choice(self.game.smokes),vec(1,0).rotate(-self.angle-random.randint(-30,90)))
             #Smoke(self.game,self.pos.x - helper[0],self.pos.y + helper[1],'fade_out',random.choice(self.game.stones),vec(1,0).rotate(-self.angle-random.randrange(-10,30)))
             Smoke(self.game,self.pos.x - helper[0],self.pos.y + helper[1],self.game.stones[0],vec(.5,0).rotate(-self.angle-random.randrange(-60,60)))
+            if len(self.visited)> 10:
+                self.visited.pop(0)
 
 
     def choose_player(self):
         distances = []
         for player in self.game.players:
             distances.append(((player.pos - self.pos).length(),player))
-        temp =[]
-
-        self.player = sorted(distances,key=lambda x:x[0])[0][1]
 
 
+        if len(distances) != 0:
+            self.player = sorted(distances,key=lambda x:x[0])[0][1]
+        #temp = set()
+        #list1 = []
         #py.draw.circle(self.game.game_display,(0,200,0),(int(self.player.pos.x),int(self.player.pos.y)),300)
-        for helper in self.game.helpers:
-            if 0<(self.player.pos - helper.pos).length() <300:
+        #for helper in self.game.helpers:
+        #    if 0<(self.player.pos - helper.pos).length() <500:
 
-                temp.append(((self.player.pos - helper.pos).length(),helper))
-        self.helpers_to_go = []
+        #        temp.add(helper)
+        #self.helpers_to_go =  temp
+        #if len(self.helpers_to_go) == 0:
+        #    self.help2()
 
 
-        for x in sorted(self.helpers_to_go,reverse = True,key = lambda x:x[0]):
-            self.helpers_to_go.append(x[1])
+
+
+
+
+
 
 
 
@@ -647,9 +811,10 @@ class Ai(py.sprite.Sprite):
         if len(self.to_visited)>0:
             pass
         else:
-            
+            target_group = self.game.helpers
             distances = []
-            for target in self.helpers_to_go:
+            #for target in list(self.helpers_to_go):
+            for target in target_group:
                 if target not in self.visited:
                     distances.append(((target.pos - self.pos).length(),target))
             if len(distances) != 0:
@@ -663,15 +828,15 @@ class Ai(py.sprite.Sprite):
         self.pos += self.vel * self.game.dt
 
         self.hit_rect.centerx = self.pos.x
-        #self.check_collide('x')
+        self.check_collide('x')
         self.hit_rect.centery = self.pos.y
-        #self.check_collide('y')
+        self.check_collide('y')
         self.rect.center = self.hit_rect.center
         if (self.target.pos - self.pos).length()<5:
             self.visited.append(self.target)
             if len(self.to_visited)>0:
                 self.to_visited.pop(0)
-            if len(self.visited)> 10:
+            if len(self.visited)> 8:
                 self.visited.pop(0)
 
 
@@ -683,6 +848,26 @@ class Ai(py.sprite.Sprite):
         self.image = new_img
         self.rect =self.image.get_rect(center=self.old_center)
         self.vel = vec(self.speed,0).rotate(-self.angle)
+
+
+
+    def help2(self):
+        self.used_help = True
+        self.angle = (self.player.pos - self.pos).angle_to(vec(1,0))%360
+
+        new_img = py.transform.rotozoom(self.image_original,self.angle,1)
+        self.old_center = self.rect.center
+        self.image = new_img
+        self.rect =self.image.get_rect(center=self.old_center)
+        self.vel = vec(self.speed,0).rotate(-self.angle)
+        self.pos += self.vel * self.game.dt
+        self.hit_rect.centerx = self.pos.x
+        self.check_collide('x')
+        self.hit_rect.centery = self.pos.y
+        self.check_collide('y')
+        self.rect.center = self.hit_rect.center
+        self.choose_player()
+
 
 
 
@@ -708,11 +893,14 @@ class Ai(py.sprite.Sprite):
         self.choose_helper()
         self.rotate()
         self.move_to_helper()
+        if len(self.visited) <=0 :
+            self.choose_helper()
 
+        self.shoot()
 class Helper(py.sprite.Sprite):
     def __init__(self,game,x,y,type):
 
-        self.groups = game.helpers # in tike ro nmidunm??
+        self.groups = game.helpers
         py.sprite.Sprite.__init__(self,self.groups)
         self.game = game
         self.pos = vec(x,y)
@@ -831,4 +1019,10 @@ class Smoke(py.sprite.Sprite):
 
 
 game1 = Game()
-game1.game_loop()
+#game1.show_start_screen()
+game1.show_start_screen()
+
+while True:
+
+    game1.new_game()
+    game1.game_loop()
